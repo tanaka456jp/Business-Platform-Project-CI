@@ -42,6 +42,7 @@ jobs:
           set -euo pipefail
           source_dir="${RUNNER_TEMP}/private-source"
           dist_dir="${RUNNER_TEMP}/public-ci-dist"
+          sync_workflow="${RUNNER_TEMP}/sync-from-private.yml"
           git clone --depth=1 "https://x-access-token:${PRIVATE_SOURCE_TOKEN}@github.com/${SOURCE_REPOSITORY}.git" "$source_dir"
           git -C "$source_dir" remote set-url origin "https://github.com/${SOURCE_REPOSITORY}.git"
           source_sha=$(git -C "$source_dir" rev-parse HEAD)
@@ -49,8 +50,11 @@ jobs:
           cd "$dist_dir"
           npm test
           cd "${GITHUB_WORKSPACE}"
+          cp .github/workflows/sync-from-private.yml "$sync_workflow"
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$dist_dir/." .
+          mkdir -p .github/workflows
+          cp "$sync_workflow" .github/workflows/sync-from-private.yml
           git add --all
           if git diff --cached --quiet; then
             echo "Public CI mirror is already current and tests passed."
