@@ -1,6 +1,10 @@
 name: Sync from private source
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sync-from-private.yml
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
@@ -22,19 +26,15 @@ jobs:
         with:
           fetch-depth: 1
       - name: Check private source credential
-        id: config
         shell: bash
         env:
           PRIVATE_SOURCE_TOKEN: ${{ secrets.PRIVATE_SOURCE_TOKEN }}
         run: |
           if [ -z "$PRIVATE_SOURCE_TOKEN" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::PRIVATE_SOURCE_TOKEN is not configured; public mirror sync skipped."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "::error::PRIVATE_SOURCE_TOKEN is not configured."
+            exit 1
           fi
-      - name: Export safe snapshot from private source
-        if: steps.config.outputs.configured == 'true'
+      - name: Export and validate safe snapshot from private source
         shell: bash
         env:
           PRIVATE_SOURCE_TOKEN: ${{ secrets.PRIVATE_SOURCE_TOKEN }}
@@ -46,11 +46,14 @@ jobs:
           git -C "$source_dir" remote set-url origin "https://github.com/${SOURCE_REPOSITORY}.git"
           source_sha=$(git -C "$source_dir" rev-parse HEAD)
           SOURCE_SHA="$source_sha" node "$source_dir/tools/public-ci/export-public-ci.mjs" "$dist_dir"
+          cd "$dist_dir"
+          npm test
+          cd "${GITHUB_WORKSPACE}"
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$dist_dir/." .
           git add --all
           if git diff --cached --quiet; then
-            echo "Public CI mirror is already current."
+            echo "Public CI mirror is already current and tests passed."
             exit 0
           fi
           git config user.name "business-platform-ci-mirror"
