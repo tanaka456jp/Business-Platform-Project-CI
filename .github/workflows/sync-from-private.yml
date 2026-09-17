@@ -1,0 +1,59 @@
+name: Sync from private source
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sync-from-private-source
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REPOSITORY: tanaka456jp/Business-Platform-Project
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+      - name: Check private source credential
+        id: config
+        shell: bash
+        env:
+          PRIVATE_SOURCE_TOKEN: ${{ secrets.PRIVATE_SOURCE_TOKEN }}
+        run: |
+          if [ -z "$PRIVATE_SOURCE_TOKEN" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::PRIVATE_SOURCE_TOKEN is not configured; public mirror sync skipped."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Export safe snapshot from private source
+        if: steps.config.outputs.configured == 'true'
+        shell: bash
+        env:
+          PRIVATE_SOURCE_TOKEN: ${{ secrets.PRIVATE_SOURCE_TOKEN }}
+        run: |
+          set -euo pipefail
+          source_dir="${RUNNER_TEMP}/private-source"
+          dist_dir="${RUNNER_TEMP}/public-ci-dist"
+          git clone --depth=1 "https://x-access-token:${PRIVATE_SOURCE_TOKEN}@github.com/${SOURCE_REPOSITORY}.git" "$source_dir"
+          git -C "$source_dir" remote set-url origin "https://github.com/${SOURCE_REPOSITORY}.git"
+          source_sha=$(git -C "$source_dir" rev-parse HEAD)
+          SOURCE_SHA="$source_sha" node "$source_dir/tools/public-ci/export-public-ci.mjs" "$dist_dir"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$dist_dir/." .
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Public CI mirror is already current."
+            exit 0
+          fi
+          git config user.name "business-platform-ci-mirror"
+          git config user.email "77252983+tanaka456jp@users.noreply.github.com"
+          git commit -m "Mirror private source $source_sha"
+          git push origin HEAD:main
