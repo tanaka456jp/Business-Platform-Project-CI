@@ -1,0 +1,12 @@
+{
+  "name": "business-platform-public-ci",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/public-ci-smoke.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
