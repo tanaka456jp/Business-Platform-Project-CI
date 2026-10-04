@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceRepository": "tanaka456jp/Business-Platform-Project",
-  "sourceCommit": "8290bfc071af5b63d691b072d8f74e60e2d031fb",
+  "sourceCommit": "3f8da63c58f5ea511122b1ee615ef67a27747c66",
   "policy": "one-way-generated-public-ci-mirror",
   "files": [
     "src/note-magazine-registry.js",
