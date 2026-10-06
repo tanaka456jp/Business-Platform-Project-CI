@@ -6,6 +6,6 @@ This repository is a generated, read-only CI mirror of selected non-sensitive so
 - The private repository is the sole source of truth.
 - The mirror intentionally excludes browser profiles, authentication state, publication data, diagnostics, screenshots, product/content data, and authorization configuration.
 - The test suite uses synthetic identities only.
-- Source commit: `ae7f1b283d46448bdddc60ee14040a4d327cac40`
+- Source commit: `e60721949b9020d6a235bb970692d0c711459497`
 
 Changes are generated one-way from the private repository. The public repository pulls the allowlisted snapshot using a read-only private-source credential, so private-repository Actions minutes are not required for normal synchronization. The sync workflow validates the generated snapshot with the public smoke test before committing it. Public CI failures are signals only and never write back to the private source.
